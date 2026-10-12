@@ -1,0 +1,22 @@
+{
+  "standard_text_channels": [
+    {
+      "name": "announcements",
+      "topic": "Official server announcements. Posting is reserved for moderators."
+    },
+    {
+      "name": "general",
+      "topic": "General conversation and community discussion."
+    },
+    {
+      "name": "help",
+      "topic": "Ask questions and help other members."
+    },
+    {
+      "name": "resources",
+      "topic": "Useful links, guides, and shared resources."
+    }
+  ],
+  "max_ai_inventory_chars": 12000,
+  "max_ai_response_tokens": 700
+}

@@ -1,0 +1,61 @@
+name: Discord AI manual task
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Task to run"
+        type: choice
+        required: true
+        default: audit
+        options:
+          - audit
+          - organize
+      confirm_apply:
+        description: "Type APPLY only when you explicitly approve creating missing standard text channels"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-ai-manager-manual
+  cancel-in-progress: false
+
+jobs:
+  run-task:
+    if: ${{ inputs.mode == 'audit' || (inputs.mode == 'organize' && inputs.confirm_apply == 'APPLY') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Test policy
+        run: python -m unittest discover -s tests -v
+      - name: Run Discord task
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'openrouter/free' }}
+          MANAGER_MODE: ${{ inputs.mode }}
+          CONFIRM_APPLY: ${{ inputs.confirm_apply }}
+          DISCORD_REPORT_CHANNEL_ID: ${{ vars.DISCORD_REPORT_CHANNEL_ID }}
+        run: python src/discord_ai_manager.py
+    # A rejected input is intentionally visible as a failed workflow, not silently ignored.
+  reject-unapproved-apply:
+    if: ${{ inputs.mode == 'organize' && inputs.confirm_apply != 'APPLY' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain required confirmation
+        run: |
+          echo "Maintenance not run. To create missing standard channels, rerun and type APPLY."
+          exit 1
